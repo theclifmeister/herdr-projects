@@ -361,7 +361,11 @@ jobs:
           Invoke-Check "report through the shim" {
             $line = ($log -split "`n") | Where-Object { $_ -match "report via shim" } | Select-Object -First 1
             if ($line -notmatch "exit=Some\(0\)") { throw "$line" }
+            # Records are keyed by session socket, which `progress` reads
+            # from HERDR_SOCKET_PATH, set only inside a pane.
+            $env:HERDR_SOCKET_PATH = (Get-Content -Raw "$env:HERDR_PROJECTS_ROOT\smoke\.state\coordinator.json" | ConvertFrom-Json).socket
             $progress = Invoke-Checked $env:HP_EXE @("progress", "--pane", $pane)
+            Remove-Item Env:HERDR_SOCKET_PATH
             if ($progress -notmatch "Stub working") { throw "progress record: $progress" }
             "recorded"
           }
