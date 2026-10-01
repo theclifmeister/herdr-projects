@@ -8,18 +8,20 @@
 
 <p align="center"><a href="https://github.com/theclifmeister/herdr-projects/blob/main/docs/getting-started.md"><img src="assets/buttons/open-your-first-project.svg" alt="Open your first project" /></a></p>
 
-<p align="center"><sub>✓&nbsp;Free,&nbsp;MIT&nbsp;licensed &nbsp; ✓&nbsp;Runs&nbsp;on&nbsp;your&nbsp;machines,&nbsp;no&nbsp;hosted&nbsp;service &nbsp; ✓&nbsp;macOS&nbsp;and&nbsp;Linux,&nbsp;Herdr&nbsp;0.9.1+</sub></p>
+<p align="center"><sub>✓&nbsp;Free,&nbsp;MIT&nbsp;licensed &nbsp; ✓&nbsp;Runs&nbsp;on&nbsp;your&nbsp;machines,&nbsp;no&nbsp;hosted&nbsp;service &nbsp; ✓&nbsp;macOS,&nbsp;Linux&nbsp;and&nbsp;Windows&nbsp;(experimental),&nbsp;Herdr&nbsp;0.9.1+</sub></p>
 
 <br />
 
 ## Install
 
-You need macOS or Linux, [Herdr](https://herdr.dev) 0.9.1 or newer, Git, and an agent CLI Herdr can start, such as Claude Code. Rust/Cargo is needed only when there is no prebuilt binary for your machine.
+You need macOS, Linux, or Windows (experimental), [Herdr](https://herdr.dev) 0.9.1 or newer, Git, and an agent CLI Herdr can start, such as Claude Code. Rust/Cargo is needed only when there is no prebuilt binary for your machine.
 
 ```bash
 herdr plugin install theclifmeister/herdr-projects
 herdr-projects configure
 ```
+
+**Windows (experimental):** run the same `herdr plugin install theclifmeister/herdr-projects` from PowerShell, with Herdr 0.9.1 or newer. Git Bash is optional: the progress hooks also run in PowerShell. Known caveat: Herdr bug [#4179](https://github.com/herdrdev/herdr/issues/4179) can make an install fail when a build step leaves a process running in its temporary checkout; run the install again.
 
 `configure` sets up the sidebar rows, the popup key, the progress hooks and the `/autoproject` skill once. Check that it's running with `herdr plugin action invoke doctor --plugin herdr-projects`. The [getting-started guide](docs/getting-started.md) walks through each step, and [Updating](#updating) covers new releases.
 
@@ -73,7 +75,7 @@ Agents report their own progress, so a thread that asked you something shows `ne
 
 <table align="center">
 <tr>
-<td align="center" valign="top"><sub>For developers who run coding agents in Herdr on macOS or Linux</sub><br /><h2>Free</h2><div align="left">&nbsp;&nbsp;&nbsp;✓&nbsp; A coordinator that delegates and never does the work itself<br />&nbsp;&nbsp;&nbsp;✓&nbsp; Threads on their own worktree and branch, or in a tab<br />&nbsp;&nbsp;&nbsp;✓&nbsp; Shared instructions and memory in every brief<br />&nbsp;&nbsp;&nbsp;✓&nbsp; What needs you, in the sidebar, the tab bar and one popup<br />&nbsp;&nbsp;&nbsp;✓&nbsp; Pull request follow-up, routines, cleanup after a merge<br />&nbsp;&nbsp;&nbsp;✓&nbsp; Threads on your saved SSH machines, reports copied home</div></td>
+<td align="center" valign="top"><sub>For developers who run coding agents in Herdr on macOS, Linux or Windows</sub><br /><h2>Free</h2><div align="left">&nbsp;&nbsp;&nbsp;✓&nbsp; A coordinator that delegates and never does the work itself<br />&nbsp;&nbsp;&nbsp;✓&nbsp; Threads on their own worktree and branch, or in a tab<br />&nbsp;&nbsp;&nbsp;✓&nbsp; Shared instructions and memory in every brief<br />&nbsp;&nbsp;&nbsp;✓&nbsp; What needs you, in the sidebar, the tab bar and one popup<br />&nbsp;&nbsp;&nbsp;✓&nbsp; Pull request follow-up, routines, cleanup after a merge<br />&nbsp;&nbsp;&nbsp;✓&nbsp; Threads on your saved SSH machines, reports copied home</div></td>
 </tr>
 <tr>
 <td align="center"><a href="https://github.com/theclifmeister/herdr-projects/blob/main/docs/getting-started.md"><img src="assets/buttons/open-your-first-project.svg" alt="Open your first project" /></a></td>
@@ -93,6 +95,13 @@ herdr-projects ticker start
 
 Herdr reinstalls the plugin in the same folder, and the plugin keeps your `~/.local/bin/herdr-projects` link pointing at it. If you linked a local checkout with `herdr plugin link` instead, run `git pull` and `sh scripts/install.sh` in it in place of the `herdr plugin install` line.
 
+**Once, on Windows, if you're on 0.3.0 or 0.3.1:** their `update` runs from the folder Herdr replaces, which Windows refuses. Run it from a copy instead, in PowerShell:
+
+```powershell
+$exe = "$env:APPDATA\herdr\plugins\github\herdr-projects-b1278ffb803c\target\release\herdr-projects.exe"
+Copy-Item $exe "$env:TEMP\hp-update.exe" -Force; & "$env:TEMP\hp-update.exe" update
+```
+
 **From then on:**
 
 ```bash
@@ -106,7 +115,7 @@ herdr-projects update --check   # only print the installed and the newest versio
 
 ### Do I need to know how to code?
 
-You need to be comfortable in a terminal. The plugin downloads its own prebuilt binary on install, and a project is a plain folder of Markdown and TOML files, but you never have to edit them: everything changes by asking the coordinator or from the popup. You'll need macOS or Linux, Herdr 0.9.1 or newer, Git, and an agent CLI Herdr can start, such as Claude Code. Rust/Cargo is needed only when there is no prebuilt binary for your machine. The [getting-started guide](docs/getting-started.md) covers the prerequisites.
+You need to be comfortable in a terminal. The plugin downloads its own prebuilt binary on install, and a project is a plain folder of Markdown and TOML files, but you never have to edit them: everything changes by asking the coordinator or from the popup. You'll need macOS, Linux, or Windows (experimental), Herdr 0.9.1 or newer, Git, and an agent CLI Herdr can start, such as Claude Code. Rust/Cargo is needed only when there is no prebuilt binary for your machine. The [getting-started guide](docs/getting-started.md) covers the prerequisites.
 
 ### How do I check that Herdr Projects is running?
 
