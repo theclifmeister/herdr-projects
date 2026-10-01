@@ -41,8 +41,10 @@ function Initialize-Smoke {
         $front = @($dirs.STUB_DIR, $dirs.HERDR_INSTALL_DIR, $bin) -join ";"
         [Environment]::SetEnvironmentVariable("Path", "$front;$userPath", "User")
     }
-    "| Check | Result | Detail |" | Add-Content $env:GITHUB_STEP_SUMMARY
-    "| --- | --- | --- |" | Add-Content $env:GITHUB_STEP_SUMMARY
+    # Rows for the job summary, which Write-Summary makes into one table.
+    $results = Join-Path $t "smoke-results.md"
+    New-Item -ItemType File -Force $results | Out-Null
+    "SMOKE_RESULTS=$results" | Add-Content $env:GITHUB_ENV
 }
 
 # The installers herdr documents; both honour HERDR_INSTALL_DIR.

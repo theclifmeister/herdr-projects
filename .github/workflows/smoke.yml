@@ -9,11 +9,11 @@
 # PowerShell, which every runner has; what differs by platform is marked
 # there. The stub and the helpers sit beside it. Each check is its own step
 # with a short timeout, and the first failing check stops the job: later
-# checks build on earlier ones (no thread without a coordinator). Only
-# collecting logs, uploading them and stopping the server always run. The job
-# summary lists the checks that ran. Run it by hand with "Run workflow", and
-# tick "tmate" to get a shell on the runner (only you can connect) before the
-# server is stopped.
+# checks build on earlier ones (no thread without a coordinator). Only the
+# job summary (one table of the checks that ran), collecting logs, uploading
+# them and stopping the server always run. Run it by hand with "Run
+# workflow", and tick "tmate" to get a shell on the runner (only you can
+# connect) before the server is stopped.
 name: Smoke
 
 on:
@@ -146,6 +146,12 @@ jobs:
       - name: "Check: doctor"
         timeout-minutes: 2
         run: . .github/smoke/checks.ps1; Test-Doctor
+
+      - name: Job summary
+        if: ${{ always() }}
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: . .github/smoke/checks.ps1; Write-Summary
 
       - name: tmate debug session
         if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.tmate }}
