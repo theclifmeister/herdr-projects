@@ -1,6 +1,12 @@
-# Shared by the steps of windows-smoke.yml: dot-source it at the top of a step.
+# Generic helpers for smoke.yml, dot-sourced by checks.ps1. Runs under pwsh
+# on Windows, macOS and Linux.
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
+
+# What differs by platform, in one place.
+$Exe = if ($IsWindows) { ".exe" } else { "" }
+# Herdr's config folder: %APPDATA%\herdr on Windows, ~/.config/herdr on Unix.
+$ConfigHome = if ($IsWindows) { $env:APPDATA } else { Join-Path $HOME ".config" }
 
 # Runs a native command, prints its output, and throws on a non-zero exit.
 function Invoke-Checked {
