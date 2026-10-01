@@ -119,14 +119,18 @@ jobs:
           # herdr skips the plugin's actions, panes and startup hook on
           # Windows, so this job adds it in its own checkout only. Remove this
           # patch once the manifest lists "windows".
-          $manifest = Get-Content -Raw herdr-plugin.toml
-          $first = $manifest.IndexOf("[[")
-          $head = $manifest.Substring(0, $first)
-          if ($head -notmatch '(?m)^platforms = \[(.*)\]') { throw "no top-level platforms in herdr-plugin.toml" }
-          if ($Matches[1] -notmatch '"windows"') {
-            $head = $head -replace '(?m)^platforms = \[(.*)\]', 'platforms = [$1, "windows"]'
-            Set-Content -NoNewline -Encoding utf8 herdr-plugin.toml ($head + $manifest.Substring($first))
+          $lines = [System.IO.File]::ReadAllLines("$PWD\herdr-plugin.toml")
+          $patched = $false
+          for ($i = 0; $i -lt $lines.Length; $i++) {
+            if ($lines[$i].StartsWith("[[")) { break }  # top level only, not [[build]] entries
+            if ($lines[$i] -match '^platforms\s*=\s*\[(.*)\]\s*$') {
+              if ($Matches[1] -notmatch '"windows"') { $lines[$i] = "platforms = [$($Matches[1]), `"windows`"]" }
+              $patched = $true
+              break
+            }
           }
+          if (-not $patched) { throw "no top-level platforms in herdr-plugin.toml" }
+          [System.IO.File]::WriteAllLines("$PWD\herdr-plugin.toml", $lines)
           Select-String -Path herdr-plugin.toml -Pattern '^platforms' | Select-Object -First 1 | ForEach-Object { Write-Host $_.Line }
           # `plugin link`, not `plugin install`: install hits herdr#4179 on
           # Windows. Linking before the server starts lets herdr run the
