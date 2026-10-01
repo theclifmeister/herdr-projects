@@ -462,10 +462,18 @@ function Save-SmokeLogs {
         }
     }
     if (-not $IsWindows) {
-        # Unix: upload-artifact can't zip sockets (herdr's), FIFOs or links and
-        # warns ENTRYNOTSUPPORTED for each. Keep only regular files, and name
-        # what was left out, with its type, in the log and in left-out.txt.
-        $odd = @(& find $out '!' -type f '!' -type d)
+        # Unix: upload-artifact follows links and warns ENTRYNOTSUPPORTED for
+        # anything that is not a regular file or folder at the end: herdr's
+        # sockets (GNU cp copies them), and on macOS `herdr.sock.agent`, a link
+        # to launchd's ssh-agent socket. Leave those out, and name them, with
+        # their type, in the log and in left-out.txt. Links to files and
+        # folders (CLAUDE.md, the skill) zip fine and stay. No `find -L`: rm
+        # must never reach through a link into the checkout.
+        # `test -f` and `test -d` follow links, as the zip does.
+        $odd = @(& find $out '!' -type f '!' -type d | Where-Object {
+                & sh -c 'test -f "$1" || test -d "$1"' sh $_
+                $LASTEXITCODE -ne 0
+            })
         $listing = foreach ($path in $odd) { & ls -ld $path }
         $listing | Set-Content -Encoding utf8 (Join-Path $out "left-out.txt")
         foreach ($line in $listing) { Write-Host "left out of the artifact: $line" }
