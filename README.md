@@ -4,13 +4,24 @@
 
 <p align="center">Herdr Projects lets you run a larger piece of work in <a href="https://herdr.dev">Herdr</a> when one agent isn't enough and managing five by hand is a job in itself. You talk to one coordinator agent. It starts a separate agent for each task on its own branch, gives every one of them the same goal, instructions and memory, and Herdr's own sidebar shows you which threads need you, which are ready for review and which are still working.</p>
 
-<p align="center"><a href="https://github.com/eliasstravik/herdr-projects/blob/main/assets/herdr-projects-launch.mp4"><img src="assets/herdr-projects-launch.webp" width="88%" alt="Animation: you tell a coordinator what you want, it starts three threads that each work on their own branch, and an overview groups them as ready for review, waiting on you, and working" /></a></p>
+<p align="center"><a href="https://github.com/theclifmeister/herdr-projects/blob/main/assets/herdr-projects-launch.mp4"><img src="assets/herdr-projects-launch.webp" width="88%" alt="Animation: you tell a coordinator what you want, it starts three threads that each work on their own branch, and an overview groups them as ready for review, waiting on you, and working" /></a></p>
 
-<p align="center"><a href="https://github.com/eliasstravik/herdr-projects/blob/main/docs/getting-started.md"><img src="assets/buttons/open-your-first-project.svg" alt="Open your first project" /></a></p>
+<p align="center"><a href="https://github.com/theclifmeister/herdr-projects/blob/main/docs/getting-started.md"><img src="assets/buttons/open-your-first-project.svg" alt="Open your first project" /></a></p>
 
 <p align="center"><sub>✓&nbsp;Free,&nbsp;MIT&nbsp;licensed &nbsp; ✓&nbsp;Runs&nbsp;on&nbsp;your&nbsp;machines,&nbsp;no&nbsp;hosted&nbsp;service &nbsp; ✓&nbsp;macOS&nbsp;and&nbsp;Linux,&nbsp;Herdr&nbsp;0.9.1+</sub></p>
 
 <br />
+
+## Install
+
+You need macOS or Linux, [Herdr](https://herdr.dev) 0.9.1 or newer, Git, and an agent CLI Herdr can start, such as Claude Code. Rust/Cargo is needed only when there is no prebuilt binary for your machine.
+
+```bash
+herdr plugin install theclifmeister/herdr-projects
+herdr-projects configure
+```
+
+`configure` sets up the sidebar rows, the popup key, the progress hooks and the `/autoproject` skill once. Check that it's running with `herdr plugin action invoke doctor --plugin herdr-projects`. The [getting-started guide](docs/getting-started.md) walks through each step, and [Updating](#updating) covers new releases.
 
 ## Keep one conversation going while the work happens in parallel
 
@@ -48,9 +59,11 @@ Agents report their own progress, so a thread that asked you something shows `ne
 
 ## Open your first project in three steps
 
+<p align="center">Your first project starts with an install, a name, and one sentence about what you want. Herdr Projects starts the threads and keeps them in view. You choose what to review and what to merge.</p>
+
 <table>
 <tr>
-<td align="center" valign="top" width="33%"><h3>1️⃣</h3><b>Install and configure</b><br /><sub>Run <code>herdr plugin install eliasstravik/herdr-projects</code>, then <code>herdr-projects configure</code> once for the sidebar rows, the popup key, the progress hooks and the <code>/autoproject</code> skill.</sub></td>
+<td align="center" valign="top" width="33%"><h3>1️⃣</h3><b>Install and configure</b><br /><sub>Run <code>herdr plugin install theclifmeister/herdr-projects</code>, then <code>herdr-projects configure</code> once for the sidebar rows, the popup key, the progress hooks and the <code>/autoproject</code> skill.</sub></td>
 <td align="center" valign="top" width="33%"><h3>2️⃣</h3><b>Create and open a project</b><br /><sub>Run <code>herdr plugin action invoke new --plugin herdr-projects</code>, or <code>herdr-projects new "Billing" --repo ~/dev/app</code> then <code>herdr-projects open billing</code>. A coordinator agent starts in the project's folder and primes itself from its <code>AGENTS.md</code>.</sub></td>
 <td align="center" valign="top" width="33%"><h3>3️⃣</h3><b>Tell it what you want</b><br /><sub>Describe the work in the coordinator's pane. It suggests threads, you say go ahead, and the sidebar shows each thread's state as it works.</sub></td>
 </tr>
@@ -63,7 +76,7 @@ Agents report their own progress, so a thread that asked you something shows `ne
 <td align="center" valign="top"><sub>For developers who run coding agents in Herdr on macOS or Linux</sub><br /><h2>Free</h2><div align="left">&nbsp;&nbsp;&nbsp;✓&nbsp; A coordinator that delegates and never does the work itself<br />&nbsp;&nbsp;&nbsp;✓&nbsp; Threads on their own worktree and branch, or in a tab<br />&nbsp;&nbsp;&nbsp;✓&nbsp; Shared instructions and memory in every brief<br />&nbsp;&nbsp;&nbsp;✓&nbsp; What needs you, in the sidebar, the tab bar and one popup<br />&nbsp;&nbsp;&nbsp;✓&nbsp; Pull request follow-up, routines, cleanup after a merge<br />&nbsp;&nbsp;&nbsp;✓&nbsp; Threads on your saved SSH machines, reports copied home</div></td>
 </tr>
 <tr>
-<td align="center"><a href="https://github.com/eliasstravik/herdr-projects/blob/main/docs/getting-started.md"><img src="assets/buttons/open-your-first-project.svg" alt="Open your first project" /></a></td>
+<td align="center"><a href="https://github.com/theclifmeister/herdr-projects/blob/main/docs/getting-started.md"><img src="assets/buttons/open-your-first-project.svg" alt="Open your first project" /></a></td>
 </tr>
 </table>
 
@@ -73,7 +86,7 @@ Agents report their own progress, so a thread that asked you something shows `ne
 
 ```bash
 herdr-projects ticker stop
-herdr plugin install eliasstravik/herdr-projects
+herdr plugin install theclifmeister/herdr-projects
 herdr-projects doctor --fix
 herdr-projects ticker start
 ```
@@ -132,11 +145,3 @@ They are soft. By default the coordinator proposes threads and waits (until you 
 ### What does it cost?
 
 Herdr Projects is free and [MIT licensed](LICENSE). Your agent CLI's usual usage charges still apply: every thread is a full agent session, and the coordinator spends tokens each turn reading its digest.
-
-## Open your first project in three steps
-
-<p align="center">Your first project starts with an install, a name, and one sentence about what you want. Herdr Projects starts the threads and keeps them in view. You choose what to review and what to merge.</p>
-
-<p align="center"><a href="https://github.com/eliasstravik/herdr-projects/blob/main/docs/getting-started.md"><img src="assets/buttons/open-your-first-project.svg" alt="Open your first project" /></a></p>
-
-<p align="center"><sub>✓&nbsp;Free,&nbsp;MIT&nbsp;licensed &nbsp; ✓&nbsp;Runs&nbsp;on&nbsp;your&nbsp;machines,&nbsp;no&nbsp;hosted&nbsp;service &nbsp; ✓&nbsp;macOS&nbsp;and&nbsp;Linux,&nbsp;Herdr&nbsp;0.9.1+</sub></p>

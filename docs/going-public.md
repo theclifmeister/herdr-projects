@@ -19,5 +19,5 @@ The repository is public and carries the `herdr-plugin` topic, so the Herdr mark
 
 ## Open
 
-- [ ] Verify `herdr plugin install eliasstravik/herdr-projects` from a clean machine: it clones, downloads the prebuilt binary, and registers the actions and popups.
+- [ ] Verify `herdr plugin install theclifmeister/herdr-projects` from a clean machine: it clones, downloads the prebuilt binary, and registers the actions and popups.
 - [ ] `docs/herdr-notes.md` and `docs/manual-test.md` name the author's machines and home paths. Generalise them.

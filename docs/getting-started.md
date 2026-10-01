@@ -15,7 +15,7 @@ The plugin needs no hosted service and no API key. It depends on Herdr and nothi
 ## 2. Install the plugin
 
 ```bash
-herdr plugin install eliasstravik/herdr-projects
+herdr plugin install theclifmeister/herdr-projects
 ```
 
 Review the install preview. Herdr clones the repository, runs `scripts/install.sh`, and registers the plugin. The script downloads the release's prebuilt binary for your machine and checks it against the release's `SHA256SUMS`. When there is no such binary, the download fails or the checksum does not match, it says so and runs the locked Cargo release build instead. Set `HERDR_PROJECTS_BUILD=source` to always build from source. A checkout with local changes, or on a commit after the release, also builds from source. Its startup command starts a background ticker only when you have at least one project.
@@ -100,7 +100,7 @@ herdr-projects ticker status
 
 ```bash
 herdr-projects ticker stop
-herdr plugin install eliasstravik/herdr-projects
+herdr plugin install theclifmeister/herdr-projects
 herdr-projects doctor --fix
 herdr-projects ticker start
 ```
