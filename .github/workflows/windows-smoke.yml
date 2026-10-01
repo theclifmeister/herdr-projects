@@ -478,6 +478,11 @@ jobs:
               robocopy $pair[0] (Join-Path $out $pair[1]) /E /XJ /R:0 /W:0 /NFL /NDL /NJH /NJS | Out-Null
             }
           }
+          $tickerLog = Join-Path $env:HERDR_PROJECTS_ROOT ".ticker.log"
+          if (Test-Path -LiteralPath $tickerLog) {
+            Write-Host "--- last 60 lines of .ticker.log"
+            Get-Content -LiteralPath $tickerLog -Tail 60 | ForEach-Object { Write-Host $_ }
+          }
           $global:LASTEXITCODE = 0
 
       - name: Upload logs and state
@@ -487,6 +492,8 @@ jobs:
           name: windows-smoke-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/smoke-artifacts
           if-no-files-found: warn
+          # .state/ and .ticker.log are dotfiles.
+          include-hidden-files: true
 
       - name: Stop the server and the ticker
         if: ${{ always() }}
