@@ -210,6 +210,16 @@ jobs:
             "TICKER_PID=$($Matches[1])" | Add-Content $env:GITHUB_ENV
             "pid $($Matches[1])"
           }
+          # herdr records the startup command as finished only once its output
+          # pipes close: a ticker that inherited them kept it `running`.
+          Invoke-Check "startup hook finishes" {
+            $entry = Wait-Until "the startup command no longer running" 30 {
+              $logs = ((Invoke-Quiet herdr @("plugin", "logs", "--plugin", "herdr-projects")).Text | ConvertFrom-Json).result.logs
+              $logs | Where-Object { $_.event -eq "startup" -and $_.status -ne "running" } | Select-Object -First 1
+            }
+            if ($entry.status -ne "succeeded") { throw "startup command $($entry.status): $($entry | ConvertTo-Json -Compress)" }
+            $entry.status
+          }
 
       - name: "Check: ticker survives after the startup hook exits"
         timeout-minutes: 2
