@@ -412,6 +412,12 @@ function Test-HookShells {
     Invoke-Check "configured hook in each shell" {
         Write-Host $configured
         if ($IsWindows -and $configured -notmatch '^[A-Za-z]:/\S+ ') { throw "not a bare command: $configured" }
+        if ($IsWindows) {
+            # The form before: a quoted path is a string in PowerShell, not a call.
+            $old = "`"$env:HP_EXE`" --root `"$env:HERDR_PROJECTS_ROOT`" hook --agent claude"
+            $result = Invoke-HookIn "pwsh" $old
+            if ($result.Code -eq 0 -and $result.Out -match "report --percent") { throw "the old quoted form ran in pwsh, so this check proves nothing" }
+        }
         Test-HookCommandIn "configured" $configured
     }
     if (-not $IsWindows) { return }
