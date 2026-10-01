@@ -461,6 +461,16 @@ function Save-SmokeLogs {
             }
         }
     }
+    if (-not $IsWindows) {
+        # Unix: upload-artifact can't zip sockets (herdr's), FIFOs or links and
+        # warns ENTRYNOTSUPPORTED for each. Keep only regular files, and name
+        # what was left out, with its type, in the log and in left-out.txt.
+        $odd = @(& find $out '!' -type f '!' -type d)
+        $listing = foreach ($path in $odd) { & ls -ld $path }
+        $listing | Set-Content -Encoding utf8 (Join-Path $out "left-out.txt")
+        foreach ($line in $listing) { Write-Host "left out of the artifact: $line" }
+        foreach ($path in $odd) { & rm -f -- $path }
+    }
     $tickerLog = Join-Path $env:HERDR_PROJECTS_ROOT ".ticker.log"
     if (Test-Path -LiteralPath $tickerLog) {
         Write-Host "--- last 60 lines of .ticker.log"
