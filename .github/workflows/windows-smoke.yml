@@ -95,6 +95,13 @@ jobs:
           $dirs.HERDR_INSTALL_DIR | Add-Content $env:GITHUB_PATH
           # Where the plugin writes its herdr-projects.cmd shim.
           "$env:USERPROFILE\.local\bin" | Add-Content $env:GITHUB_PATH
+          # herdr's panes take PATH from the registry (machine and user), not
+          # from the server's environment (run 36843818657 showed a pane
+          # without the folders above). Installers put claude, herdr and
+          # the shim folder on the user PATH, so do the same here.
+          $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+          $front = @($dirs.STUB_DIR, $dirs.HERDR_INSTALL_DIR, "$env:USERPROFILE\.local\bin") -join ";"
+          [Environment]::SetEnvironmentVariable("Path", "$front;$userPath", "User")
           "| Check | Result | Detail |" | Add-Content $env:GITHUB_STEP_SUMMARY
           "| --- | --- | --- |" | Add-Content $env:GITHUB_STEP_SUMMARY
 
