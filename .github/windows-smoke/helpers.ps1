@@ -66,27 +66,20 @@ function Add-Result {
     Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line -Encoding utf8
 }
 
-# Runs one check: the body throws to fail. Records the result in the summary;
-# the step's later checks still run, and Assert-Checks fails the step.
-$global:SmokeFailures = @()
+# Runs one check: the body throws to fail. Records the result in the job
+# summary and rethrows, so the first failing check stops the job.
 function Invoke-Check {
     param([string] $Check, [scriptblock] $Body)
     try {
         $detail = (& $Body | Select-Object -Last 1)
-        Add-Result $Check $true "$detail"
-        Write-Host "PASS: $Check $detail"
     } catch {
         $message = $_.Exception.Message
         Add-Result $Check $false $message
         Write-Host "::error title=$Check::$($message -replace "`r?`n", ' ')"
-        $global:SmokeFailures += $Check
+        throw
     }
-}
-
-function Assert-Checks {
-    if ($global:SmokeFailures.Count -gt 0) {
-        throw "failed: $($global:SmokeFailures -join ', ')"
-    }
+    Add-Result $Check $true "$detail"
+    Write-Host "PASS: $Check $detail"
 }
 
 # herdr-projects from this checkout's build. No param block, so options

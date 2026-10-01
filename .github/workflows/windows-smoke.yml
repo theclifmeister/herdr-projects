@@ -5,10 +5,12 @@
 # under a real herdr on Windows.
 #
 # The stub and the helpers live in .github/windows-smoke/. Each check is its
-# own step and runs even when an earlier one failed, so one run shows every
-# result; the job summary lists them. Run it by hand with "Run workflow", and
-# tick "tmate" to get a shell on the runner (only you can connect) before
-# the server is stopped.
+# own step with a short timeout, and the first failing check stops the job:
+# later checks build on earlier ones (no thread without a coordinator). Only
+# collecting logs, uploading them and stopping the server always run. The job
+# summary lists the checks that ran. Run it by hand with "Run workflow", and
+# tick "tmate" to get a shell on the runner (only you can connect) before the
+# server is stopped.
 name: Windows smoke
 
 on:
@@ -37,7 +39,7 @@ jobs:
   smoke:
     name: smoke (windows-2025)
     runs-on: windows-2025
-    timeout-minutes: 40
+    timeout-minutes: 25
     # Not required while it stabilises: a failure shows on the pull request
     # but does not block it.
     continue-on-error: true
@@ -112,6 +114,7 @@ jobs:
           if ($found -ne "$env:STUB_DIR\claude.exe") { throw "claude resolves to $found, not the stub" }
 
       - name: Link the plugin
+        timeout-minutes: 2
         run: |
           . .github/windows-smoke/helpers.ps1
           # "windows" stays out of the manifest's top-level `platforms` until
@@ -140,6 +143,7 @@ jobs:
           if ($list -notmatch 'herdr-projects') { throw "plugin list does not show herdr-projects" }
 
       - name: Create the project
+        timeout-minutes: 2
         run: |
           . .github/windows-smoke/helpers.ps1
           # Before the server starts, so the startup hook finds a project and
@@ -152,9 +156,9 @@ jobs:
             }
             "in $dir"
           }
-          Assert-Checks
 
       - name: Start the herdr server
+        timeout-minutes: 2
         run: |
           . .github/windows-smoke/helpers.ps1
           # herdr's own Windows CI pattern (scripts/windows_smoke_conpty_path.ps1).
@@ -166,11 +170,31 @@ jobs:
           } -IntervalMs 250 | Out-Null
           Invoke-Checked herdr @("status", "server") | Out-Null
 
+      - name: "Check: a pane finds the stub"
+        timeout-minutes: 2
+        run: |
+          . .github/windows-smoke/helpers.ps1
+          # Agents start in pane shells, which get herdr's environment: the
+          # stub must resolve there, not only in this step.
+          Invoke-Check "pane resolves claude to the stub" {
+            $created = (Invoke-Checked herdr @("workspace", "create", "--cwd", $env:RUNNER_TEMP, "--label", "terminal")) | ConvertFrom-Json
+            $term = $created.result.root_pane.pane_id
+            "TERMINAL_PANE=$term" | Add-Content $env:GITHUB_ENV
+            Wait-Until "a shell prompt in $term" 30 { (Read-Pane $term) -match "PS |>" } | Out-Null
+            Send-PaneLine $term 'Write-Output "PATH=$env:PATH"; Write-Output "CLAUDE=$((Get-Command claude -ErrorAction SilentlyContinue).Source)"; Write-Output "LOGDIR=$env:STUB_LOG_DIR"'
+            $screen = Wait-Until "the pane printed CLAUDE=" 30 { $t = Read-Pane $term; if ($t -match "(?m)^CLAUDE=") { $t } }
+            Write-Host $screen
+            $claude = [regex]::Match($screen, "(?m)^CLAUDE=(.*)$").Groups[1].Value.Trim()
+            if ($claude -ne "$env:STUB_DIR\claude.exe") { throw "claude in a pane resolves to '$claude'" }
+            $claude
+          }
+
       - name: "Check: startup hook starts the ticker"
+        timeout-minutes: 2
         run: |
           . .github/windows-smoke/helpers.ps1
           Invoke-Check "startup hook starts the ticker" {
-            $status = Wait-Until "ticker running" 60 {
+            $status = Wait-Until "ticker running" 45 {
               $s = Invoke-Quiet $env:HP_EXE @("ticker", "status")
               if ($s.Text -match "ticker: running") { $s.Text }
             }
@@ -179,10 +203,9 @@ jobs:
             "TICKER_PID=$($Matches[1])" | Add-Content $env:GITHUB_ENV
             "pid $($Matches[1])"
           }
-          Assert-Checks
 
       - name: "Check: ticker survives after the startup hook exits"
-        if: ${{ !cancelled() }}
+        timeout-minutes: 2
         run: |
           . .github/windows-smoke/helpers.ps1
           # The startup hook is a short-lived child of herdr; the ticker it
@@ -199,10 +222,9 @@ jobs:
             if ($s.Text -notmatch "pid:\s+$env:TICKER_PID\b") { throw "ticker status changed: $($s.Text)" }
             "pid $env:TICKER_PID alive after 20 s"
           }
-          Assert-Checks
 
       - name: Configure hooks and skill
-        if: ${{ !cancelled() }}
+        timeout-minutes: 2
         run: |
           . .github/windows-smoke/helpers.ps1
           Invoke-Check "configure" {
@@ -212,10 +234,9 @@ jobs:
             if ($settings -notmatch 'hook --agent claude') { throw "no hook in .claude/settings.json" }
             "hooks in .claude/settings.json"
           }
-          Assert-Checks
 
       - name: "Check: open the coordinator"
-        if: ${{ !cancelled() }}
+        timeout-minutes: 3
         run: |
           . .github/windows-smoke/helpers.ps1
           Invoke-Check "coordinator opens" {
@@ -223,28 +244,27 @@ jobs:
             $record = Get-Content -Raw "$env:HERDR_PROJECTS_ROOT\smoke\.state\coordinator.json" | ConvertFrom-Json
             if (-not $record.pane_id) { throw "coordinator.json has no pane" }
             "COORDINATOR_PANE=$($record.pane_id)" | Add-Content $env:GITHUB_ENV
-            $agent = Wait-Until "coordinator agent idle" 90 {
+            $agent = Wait-Until "coordinator agent idle" 60 {
               $list = (Invoke-Quiet herdr @("agent", "list")).Text | ConvertFrom-Json
               $list.result.agents | Where-Object { $_.pane_id -eq $record.pane_id -and $_.agent_status -eq "idle" }
             }
             Write-Host ($agent | ConvertTo-Json -Depth 5)
             "pane $($record.pane_id), agent $($agent.name)"
           }
-          Assert-Checks
 
       - name: "Check: thread start and brief"
-        if: ${{ !cancelled() }}
+        timeout-minutes: 4
         run: |
           . .github/windows-smoke/helpers.ps1
           Invoke-Check "thread starts" {
             "Smoke task: reply with OK." | Set-Content -Encoding utf8 "$env:RUNNER_TEMP\task.md"
             Hp thread start smoke --title "Smoke thread" --task-file "$env:RUNNER_TEMP\task.md" --kind tab | Out-Null
-            $record = Wait-Until "thread t-0001 placed with a pane" 90 {
+            $record = Wait-Until "thread t-0001 placed with a pane" 30 {
               $r = Get-ThreadRecord smoke t-0001
               if ($r -and $r.pane_id -and $r.status -eq "open") { $r }
             }
             "THREAD_PANE=$($record.pane_id)" | Add-Content $env:GITHUB_ENV
-            $agent = Wait-Until "thread agent running" 120 {
+            $agent = Wait-Until "thread agent running" 60 {
               $list = (Invoke-Quiet herdr @("agent", "list")).Text | ConvertFrom-Json
               $list.result.agents | Where-Object { $_.pane_id -eq $record.pane_id -and $_.agent -eq "claude" }
             }
@@ -254,10 +274,10 @@ jobs:
           # typed but not submitted. The stub logs every line it receives.
           Invoke-Check "brief arrives" {
             $pane = (Get-ThreadRecord smoke t-0001).pane_id
-            Wait-Until "the stub received the brief line" 180 {
+            Wait-Until "the stub received the brief line" 60 {
               (Get-StubLog $pane) -match "prompt: Read \.herdr-project/smoke-t-0001/brief\.md"
             } -IntervalMs 2000 | Out-Null
-            $record = Wait-Until "the record says delivered" 60 {
+            $record = Wait-Until "the record says delivered" 30 {
               $r = Get-ThreadRecord smoke t-0001
               if ($r -and -not $r.prompt_pending) { $r }
             }
@@ -265,10 +285,9 @@ jobs:
             if (-not (Test-Path -LiteralPath $brief)) { throw "no brief at $brief" }
             "after $($record.brief_attempts) attempt(s)"
           }
-          Assert-Checks
 
       - name: "Check: ticker still the same process"
-        if: ${{ !cancelled() }}
+        timeout-minutes: 1
         run: |
           . .github/windows-smoke/helpers.ps1
           Invoke-Check "ticker survives across steps" {
@@ -278,10 +297,9 @@ jobs:
             if ($s -notmatch "pid:\s+$env:TICKER_PID\b") { throw "another ticker runs now: $s" }
             "pid $env:TICKER_PID"
           }
-          Assert-Checks
 
       - name: "Check: command shim, skill junction, CLAUDE.md pointer"
-        if: ${{ !cancelled() }}
+        timeout-minutes: 2
         run: |
           . .github/windows-smoke/helpers.ps1
           Invoke-Check "herdr-projects.cmd shim" {
@@ -311,10 +329,9 @@ jobs:
             if ($text -ne "@AGENTS.md`n") { throw "CLAUDE.md holds '$text'" }
             "@AGENTS.md"
           }
-          Assert-Checks
 
       - name: "Check: hook command and progress report"
-        if: ${{ !cancelled() }}
+        timeout-minutes: 2
         run: |
           . .github/windows-smoke/helpers.ps1
           $pane = $env:THREAD_PANE
@@ -341,10 +358,9 @@ jobs:
             if ($progress -notmatch "Stub working") { throw "progress record: $progress" }
             "recorded"
           }
-          Assert-Checks
 
       - name: "Check: routines without a shell and with pwsh"
-        if: ${{ !cancelled() }}
+        timeout-minutes: 5
         run: |
           . .github/windows-smoke/helpers.ps1
           $dir = "$env:HERDR_PROJECTS_ROOT\smoke\routines"
@@ -368,9 +384,7 @@ jobs:
 
           # `safety set` and `routine approve` refuse without a terminal, so
           # they are typed into a herdr pane, as a person would.
-          $created = (Invoke-Checked herdr @("workspace", "create", "--cwd", $env:HERDR_PROJECTS_ROOT, "--label", "terminal")) | ConvertFrom-Json
-          $term = $created.result.root_pane.pane_id
-          Start-Sleep -Seconds 3
+          $term = $env:TERMINAL_PANE
           Invoke-Check "routine approval in a terminal" {
             Send-PaneLine $term "$env:HP_EXE safety set --global routine_commands on"
             Wait-Until "the y/N question" 30 { (Read-Pane $term) -match "\[y/N\]" } | Out-Null
@@ -388,26 +402,27 @@ jobs:
             "both approved"
           }
           # The ticker runs a due routine on its 15 s tick; the first run of an
-          # `every 1m` routine is one minute after the ticker first sees it.
+          # `every 1m` routine is one minute after the ticker first sees it, so
+          # this wait is the one that exceeds a minute. Both routines fall due
+          # on the same tick.
           $inbox = "$env:HERDR_PROJECTS_ROOT\smoke\inbox"
           function Find-Item([string] $Pattern) {
             Get-ChildItem -LiteralPath $inbox -Filter *.md -ErrorAction SilentlyContinue |
               Where-Object { (Get-Content -Raw -LiteralPath $_.FullName) -match $Pattern } | Select-Object -First 1
           }
           Invoke-Check "routine with no shell" {
-            $item = Wait-Until "an inbox item with the version" 240 { Find-Item "herdr-projects \d+\.\d+" } -IntervalMs 5000
+            $item = Wait-Until "an inbox item with the version" 100 { Find-Item "herdr-projects \d+\.\d+" } -IntervalMs 5000
             Get-Content -Raw -LiteralPath $item.FullName | Write-Host
             $item.Name
           }
           Invoke-Check "routine with shell = pwsh" {
-            $item = Wait-Until "an inbox item with SMOKE-PWSH-42" 120 { Find-Item "SMOKE-PWSH-42" } -IntervalMs 5000
+            $item = Wait-Until "an inbox item with SMOKE-PWSH-42" 30 { Find-Item "SMOKE-PWSH-42" } -IntervalMs 5000
             Get-Content -Raw -LiteralPath $item.FullName | Write-Host
             $item.Name
           }
-          Assert-Checks
 
       - name: "Check: doctor"
-        if: ${{ !cancelled() }}
+        timeout-minutes: 2
         run: |
           . .github/windows-smoke/helpers.ps1
           Invoke-Check "doctor" {
@@ -416,7 +431,6 @@ jobs:
             if ($out.Code -ne 0) { throw "doctor exited $($out.Code): $((($out.Text -split "`n") | Where-Object { $_ -match 'FAIL|fail|✗|missing' }) -join '; ')" }
             "healthy"
           }
-          Assert-Checks
 
       - name: tmate debug session
         if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.tmate }}
